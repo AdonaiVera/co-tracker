@@ -1,0 +1,24 @@
+
+# Ignore videos research
+gradio_demo/videos/video_1.mov
+gradio_demo/videos/video_2.mov
+gradio_demo/videos/video_3.mov
+gradio_demo/videos/video_4.mp4
+gradio_demo/videos/video_5.mp4
+
+# Mac files
+.DS_Store
+.gradio/
+cotracker.egg-info/
+cotracker/__pycache__/
+cotracker/models/__pycache__/
+cotracker/models/core/__pycache__/
+cotracker/models/core/cotracker/__pycache__/
+cotracker/utils/__pycache__/
+gradio_demo/.DS_Store
+gradio_demo/__pycache__/
+
+# Results folders
+saved_videos/
+gradio_demo/tmp/
+gradio_demo/videos/
