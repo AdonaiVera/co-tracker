@@ -15,7 +15,6 @@ import torch
 import colorsys
 import random
 from typing import List, Optional, Sequence, Tuple
-import math
 
 import numpy as np
 import rerun as rr
@@ -107,107 +106,163 @@ def log_trajectory(
     rr.log("query_frame", rr.Image(query_frame))
     rr.log("query_frame/query_points", rr.Points2D(query_xys, colors=colors))
 
-def calculate_angle(p1: np.ndarray, p2: np.ndarray, p3: np.ndarray) -> float:
-    """Calculate angle between three points."""
-    v1 = p1 - p2
-    v2 = p3 - p2
-    cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
-    angle = np.arccos(np.clip(cos_angle, -1.0, 1.0))
-    return np.degrees(angle)
-
-def log_angles(
+def log_tracks(
     frame_id: int,
     point_tracks: np.ndarray,
     visibles: np.ndarray,
-    angle_triplets: List[List[int]] = [[1, 2, 3], [3, 4, 5]]  # Example triplets to track
+    frame_size: Tuple[int, int]
 ) -> None:
-    """Log angles between specified triplets of points.
-    
+    """Logs progressive trajectories of each key point on individual black images and a full trajectory image.
+
     Args:
-        frame_id: Current frame number
-        point_tracks: Array of point tracks
-        visibles: Array indicating point visibility
-        angle_triplets: List of triplets specifying which points to calculate angles between.
-                       Each triplet is [p1, p2, p3] where p2 is the middle point.
+        frame_id: The current frame index.
+        point_tracks: [num_points, num_frames, 2], np.float32.
+        visibles: [num_points, num_frames], bool.
+        frame_size: (height, width) of the video frames.
     """
-    num_points = point_tracks.shape[0]
+    height, width = frame_size
+    num_points, num_frames = point_tracks.shape[:2]
     
-    # Track angles for each specified triplet
-    for triplet_idx, (p1_idx, p2_idx, p3_idx) in enumerate(angle_triplets):
-        # Check indices are valid
-        if max(p1_idx, p2_idx, p3_idx) >= num_points:
-            continue
-            
-        # Check all points in triplet are visible
-        if visibles[p1_idx, frame_id] and visibles[p2_idx, frame_id] and visibles[p3_idx, frame_id]:
-            p1 = point_tracks[p1_idx, frame_id]
-            p2 = point_tracks[p2_idx, frame_id] 
-            p3 = point_tracks[p3_idx, frame_id]
-            
-            angle = calculate_angle(p1, p2, p3)
-            
-            # Log angle for this specific triplet
-            rr.set_time_sequence("frameid", frame_id)
-            rr.log(f"angles_{triplet_idx}/angle", rr.Scalar(angle))
+    # Initialize a black image for the full trajectory
+    full_trajectory_image = np.zeros((height, width, 3), dtype=np.uint8)
 
-def log_tracks(frame_points_sequence: List[List[dict]], image_size: Tuple[int, int]) -> None:
-    """Log individual point trajectories and connections to Rerun.
-    
-    Args:
-        frame_points_sequence: List of frames, where each frame is a list of point dictionaries
-        image_size: Tuple of (height, width) for creating visualization
-    """
-    height, width = image_size
+    for i in range(num_points):
+        # Create a separate black image for each key point
+        single_point_image = np.zeros((height, width, 3), dtype=np.uint8)
+        trajectory = []
 
-    # Create black images for different visualizations
-    all_points_image = np.zeros((height, width, 3), dtype=np.uint8)
-    connections_image = np.zeros((height, width, 3), dtype=np.uint8)
-
-    # Create individual point track images
-    point_track_images = [
-        np.zeros((height, width, 3), dtype=np.uint8),
-        np.zeros((height, width, 3), dtype=np.uint8),
-        np.zeros((height, width, 3), dtype=np.uint8),
-        np.zeros((height, width, 3), dtype=np.uint8),
-        np.zeros((height, width, 3), dtype=np.uint8),
-        np.zeros((height, width, 3), dtype=np.uint8)
-    ]
-    # Process each frame
-    for frame_id, frame_points in enumerate(frame_points_sequence):
-        # Draw each visible point and its trajectory
-        for i, point in enumerate(frame_points):
-            if point['visible']:
-                x = int(point['x'])
-                y = int(point['y'])
-                            
-                # Draw current point as circle
-                cv2.circle(point_track_images[i], (x, y), 5, (255, 255, 255), -1)
-                cv2.circle(all_points_image, (x, y), 5, (255, 255, 255), -1)
-                                       
-                # Log individual point image
-                rr.set_time_sequence("frameid", frame_id)
-                rr.log(f"points/point_{NAME_POINTS[i]}", rr.Image(point_track_images[i]))
-                rr.log("points/all_points", rr.Image(all_points_image))
-    
-        # Draw connections between consecutive points
-        for i in range(len(frame_points)-1):
-            # Only connect consecutive points in sequence
-            # Skip if either point is not visible
-            if not frame_points[i]['visible'] or not frame_points[i+1]['visible']:
-                continue
-            
-            pt1 = (int(frame_points[i]['x']), int(frame_points[i]['y']))
-            pt2 = (int(frame_points[i+1]['x']), int(frame_points[i+1]['y']))
-            # Draw line between points
-            cv2.line(connections_image, pt1, pt2, (255, 255, 255), 2)
+        for t in range(frame_id + 1):  # Track history up to the current frame
+            if visibles[i, t]:
+                x, y = point_tracks[i, t].astype(np.int32)
+                trajectory.append((x, y))
         
-            # Log to Rerun
+        if trajectory:
+            trajectory = np.array(trajectory)
+            # Draw trajectory on the single-point image
+            for j in range(len(trajectory) - 1):
+                cv2.line(single_point_image, tuple(trajectory[j]), tuple(trajectory[j+1]), (255, 255, 255), 1)
+                cv2.line(full_trajectory_image, tuple(trajectory[j]), tuple(trajectory[j+1]), (255, 255, 255), 1)
+            
+            # Log the individual key point trajectory
             rr.set_time_sequence("frameid", frame_id)
-            rr.log("points/connections", rr.Image(connections_image))
+            rr.log(f"point_{i}/trajectory", rr.Image(single_point_image))
+        
+    # Log the full trajectory image
+    rr.log("full_trajectory", rr.Image(full_trajectory_image))
+
+def log_tracks_(
+    tracks: np.ndarray,
+    visibles: np.ndarray,
+    colors: Optional[np.ndarray] = None,
+    suffix="",
+) -> None:
+    """Log predicted point tracks to rerun."""
+    num_frames = tracks.shape[1]
+
+    for frame_id in range(num_frames):
+        rr.set_time_sequence("frameid", frame_id)
+        rr.log(
+            "frame/points" + suffix,
+            rr.Points2D(
+                tracks[visibles[:, frame_id], frame_id],
+                colors=colors[visibles[:, frame_id]],
+            )
+        )
+
+        if frame_id == 0:
+            continue
+
+        visible_track_mask = visibles[:, frame_id - 1] * visibles[:, frame_id]
+        rr.log(
+            f"frame/tracks{suffix}",
+            rr.LineStrips2D(
+                tracks[visible_track_mask, frame_id - 1 : frame_id + 1],
+                colors=colors[visible_track_mask],
+            )
+        )
+
+def paint_point_track(
+    frames: np.ndarray,
+    point_tracks: np.ndarray,
+    visibles: np.ndarray,
+    colormap: Optional[List[Tuple[int, int, int]]] = None,
+) -> np.ndarray:
+  """Converts a sequence of points to color code video.
+
+  Args:
+    frames: [num_frames, height, width, 3], np.uint8, [0, 255]
+    point_tracks: [num_points, num_frames, 2], np.float32, [0, width / height]
+    visibles: [num_points, num_frames], bool
+    colormap: colormap for points, each point has a different RGB color.
+
+  Returns:
+    video: [num_frames, height, width, 3], np.uint8, [0, 255]
+  """
+  num_points, num_frames = point_tracks.shape[0:2]
+  if colormap is None:
+    colormap = get_colors(num_colors=num_points)
+  height, width = frames.shape[1:3]
+  dot_size_as_fraction_of_min_edge = 0.015
+  radius = int(round(min(height, width) * dot_size_as_fraction_of_min_edge))
+  diam = radius * 2 + 1
+  quadratic_y = np.square(np.arange(diam)[:, np.newaxis] - radius - 1)
+  quadratic_x = np.square(np.arange(diam)[np.newaxis, :] - radius - 1)
+  icon = (quadratic_y + quadratic_x) - (radius**2) / 2.0
+  sharpness = 0.15
+  icon = np.clip(icon / (radius * 2 * sharpness), 0, 1)
+  icon = 1 - icon[:, :, np.newaxis]
+  icon1 = np.pad(icon, [(0, 1), (0, 1), (0, 0)])
+  icon2 = np.pad(icon, [(1, 0), (0, 1), (0, 0)])
+  icon3 = np.pad(icon, [(0, 1), (1, 0), (0, 0)])
+  icon4 = np.pad(icon, [(1, 0), (1, 0), (0, 0)])
+
+  video = frames.copy()
+  for t in range(num_frames):
+    # Pad so that points that extend outside the image frame don't crash us
+    image = np.pad(
+        video[t],
+        [
+            (radius + 1, radius + 1),
+            (radius + 1, radius + 1),
+            (0, 0),
+        ],
+    )
+    for i in range(num_points):
+      # The icon is centered at the center of a pixel, but the input coordinates
+      # are raster coordinates.  Therefore, to render a point at (1,1) (which
+      # lies on the corner between four pixels), we need 1/4 of the icon placed
+      # centered on the 0'th row, 0'th column, etc.  We need to subtract
+      # 0.5 to make the fractional position come out right.
+      x, y = point_tracks[i, t, :] + 0.5
+      x = min(max(x, 0.0), width)
+      y = min(max(y, 0.0), height)
+
+      if visibles[i, t]:
+        x1, y1 = np.floor(x).astype(np.int32), np.floor(y).astype(np.int32)
+        x2, y2 = x1 + 1, y1 + 1
+
+        # bilinear interpolation
+        patch = (
+            icon1 * (x2 - x) * (y2 - y)
+            + icon2 * (x2 - x) * (y - y1)
+            + icon3 * (x - x1) * (y2 - y)
+            + icon4 * (x - x1) * (y - y1)
+        )
+        x_ub = x1 + 2 * radius + 2
+        y_ub = y1 + 2 * radius + 2
+        image[y1:y_ub, x1:x_ub, :] = (1 - patch) * image[
+            y1:y_ub, x1:x_ub, :
+        ] + patch * np.array(colormap[i])[np.newaxis, np.newaxis, :]
+
+      # Remove the pad
+      video[t] = image[
+          radius + 1 : -radius - 1, radius + 1 : -radius - 1
+      ].astype(np.uint8)
+  return video
 
 def paint_point_track_visualizate(
     frames: np.ndarray,
-    point_tracks: np.ndarray, 
+    point_tracks: np.ndarray,
     visibles: np.ndarray,
     colormap: Optional[List[Tuple[int, int, int]]] = None,
 ) -> np.ndarray:
@@ -244,46 +299,18 @@ def paint_point_track_visualizate(
         video = frames.copy()
 
         log_video(frames, "original")
-
-        frame_points_sequence = []
+        
         for t in range(num_frames):
             image = np.pad(
                 video[t],
                 [(radius + 1, radius + 1), (radius + 1, radius + 1), (0, 0)],
             )
-            
-            # Track which colors have been used this frame
-            used_colors = set()
-            
-            # Store points for this frame
-            frame_points = []
-            
-            # Process points in reverse order
-            for i in range(num_points-1, -1, -1):
+            for i in range(num_points):
                 x, y = point_tracks[i, t, :] + 0.5
                 x = min(max(x, 0.0), width)
                 y = min(max(y, 0.0), height)
 
                 if visibles[i, t]:
-                    # Get color for this point
-                    point_color = tuple(colormap[i])
-                    
-                    # If color already used this frame, make point invisible
-                    if point_color in used_colors:
-                        visibles[i, t] = False
-                        continue
-                        
-                    used_colors.add(point_color)
-                    
-                    # Store point data
-                    frame_points.append({
-                        'x': x,
-                        'y': y,
-                        'color': point_color,
-                        'visible': True,
-                        'point_id': str(colormap[i])
-                    })
-                    
                     x1, y1 = np.floor(x).astype(np.int32), np.floor(y).astype(np.int32)
                     x2, y2 = x1 + 1, y1 + 1
                     patch = (
@@ -297,18 +324,13 @@ def paint_point_track_visualizate(
                     image[y1:y_ub, x1:x_ub, :] = (1 - patch) * image[
                         y1:y_ub, x1:x_ub, :
                     ] + patch * np.array(colormap[i])[np.newaxis, np.newaxis, :]
+                    
+                video[t] = image[
+                    radius + 1 : -radius - 1, radius + 1 : -radius - 1
+                ].astype(np.uint8)
 
-            # Store frame points for later logging
-            frame_points_sequence.append(frame_points)
-                
-            video[t] = image[
-                radius + 1 : -radius - 1, radius + 1 :  -radius - 1
-            ].astype(np.uint8)
-        
-        # Log progressive trajectories with visible points only
-        log_tracks(frame_points_sequence, (height, width))
-
-            
+            # Log progressive trajectories
+            log_tracks(t, point_tracks, visibles, (height, width))
 
         log_video(video, "tracking")
             
@@ -322,20 +344,6 @@ PREVIEW_WIDTH = 768 # Width of the preview video
 VIDEO_INPUT_RESO = (384, 512) # Resolution of the input video
 POINT_SIZE = 4 # Size of the query point in the preview video
 FRAME_LIMIT = 3000 # Limit the number of frames to process
-NAME_POINTS={
-    0:"head_mid_top",
-    1:"torso_mid_back",
-    2:"tail_top_back",
-    3:"tail_mid_back",
-    4:"tail_bottom_back"
-}
-COLOR_POINTS={
-    0:(255,0,0),
-    1:(0,255,0),
-    2:(0,0,255),
-    3:(255,255,0),
-    4:(0,255,255)
-}
 
 
 def get_point(frame_num, video_queried_preview, query_points, query_points_color, query_count, evt: gr.SelectData):
@@ -343,24 +351,13 @@ def get_point(frame_num, video_queried_preview, query_points, query_points_color
 
     current_frame = video_queried_preview[int(frame_num)]
 
-    # Check if we already have 5 points
-    if len(query_points[int(frame_num)]) >= 5:
-        gr.Info("You can only add 5 points per frame")
-        return (
-            current_frame,
-            video_queried_preview,
-            query_points,
-            query_points_color,
-            query_count,
-        )
-
     # Get the mouse click
     query_points[int(frame_num)].append((evt.index[0], evt.index[1], frame_num))
 
-    # Choose the color for the point from the dictionary
-    color = COLOR_POINTS[len(query_points[int(frame_num)])-1]
-
-    # Choose the name for the point from the dictionary
+    # Choose the color for the point from matplotlib colormap
+    color = matplotlib.colormaps.get_cmap("gist_rainbow")(query_count % 20 / 20)
+    color = (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
+    # print(f"Color: {color}")
     query_points_color[int(frame_num)].append(color)
 
     # Draw the point on the frame
@@ -372,7 +369,6 @@ def get_point(frame_num, video_queried_preview, query_points, query_points_color
 
     # Update the query count
     query_count += 1
-
     return (
         current_frame_draw, # Updated frame for preview
         video_queried_preview, # Updated preview video
@@ -574,10 +570,10 @@ def track(
 
     return video_file_path
 
-with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    # State variables
+
+with gr.Blocks() as demo:
     video = gr.State()
-    video_queried_preview = gr.State() 
+    video_queried_preview = gr.State()
     video_preview = gr.State()
     video_input = gr.State()
     video_fps = gr.State(24)
@@ -587,176 +583,184 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     is_tracked_query = gr.State([])
     query_count = gr.State(0)
 
-    # Title and description
-    gr.Markdown(
-        """
-        # 🐊 Kinematic Adaptation in Space Robotics
-        ## Inspired by Animal Righting Reflexes, using CoTracker3 and Rerun
-        """
-    )
-    gr.Markdown(
-        """
-        ### First step
-        Upload your video or select an example video, then click submit.
-        """
-    )
+    gr.Markdown("# Kinematic Adaptation in Space Robotics Inspired by Animal Righting Reflexes, using CoTracker3 and Rerun 🐊 ")
 
-    # Video input section
+    gr.Markdown("## First step: upload your video or select an example video, and click submit.")
     with gr.Row():
         with gr.Accordion("Your video input", open=True) as video_in_drawer:
-            video_in = gr.Video(
-                label="Video Input",
-                format="mp4",
-                elem_classes="video-input"
-            )
-            submit = gr.Button("Submit", variant="primary", scale=0)
+            video_in = gr.Video(label="Video Input", format="mp4")
+            submit = gr.Button("Submit", scale=0)
 
-            # Example videos
+            import os
             lizard_1 = os.path.join(os.path.dirname(__file__), "videos", "video_1.mp4")
             lizard_2 = os.path.join(os.path.dirname(__file__), "videos", "video_2.mp4")
             lizard_3 = os.path.join(os.path.dirname(__file__), "videos", "video_3.mp4")
             lizard_4 = os.path.join(os.path.dirname(__file__), "videos", "video_4.mp4")
             lizard_5 = os.path.join(os.path.dirname(__file__), "videos", "video_5.mp4")
 
-            gr.Examples(
-                examples=[lizard_1, lizard_2, lizard_3, lizard_4, lizard_5],
-                inputs=[video_in],
-                label="Example Videos"
-            )
+            gr.Examples(examples=[lizard_1, lizard_2, lizard_3, lizard_4, lizard_5], 
+                        inputs = [
+                            video_in
+                        ],
+                        )
 
-    # Main interface section
-    gr.Markdown(
-        """
-        ### Second step
-        Please select 5 key points on the lizard in the following order:
-        1. Head mid top
-        2. Torso mid back 
-        3. Tail top back
-        4. Tail mid back
-        5. Tail bottom back
-        
-        Then click "Track" to track these points through the video.
-        """
-    )
+
+    gr.Markdown("## Second step: Simply click \"Track\" to track a grid of points or select query points on the video before clicking")
     with gr.Row():
         with gr.Column():
             with gr.Row():
                 query_frames = gr.Slider(
-                    minimum=0,
-                    maximum=100,
-                    value=0,
-                    step=1,
-                    label="Choose Frame",
+                    minimum=0, maximum=100, value=0, step=1, label="Choose Frame", interactive=False)
+            with gr.Row():
+                undo = gr.Button("Undo", interactive=False)
+                clear_frame = gr.Button("Clear Frame", interactive=False)
+                clear_all = gr.Button("Clear All", interactive=False)
+
+            with gr.Row():
+                current_frame = gr.Image(
+                    label="Click to add query points", 
+                    type="numpy",
                     interactive=False
                 )
             
             with gr.Row():
-                undo = gr.Button("Undo", variant="secondary", interactive=False)
-                clear_frame = gr.Button("Clear Frame", variant="secondary", interactive=False)
-                clear_all = gr.Button("Clear All", variant="secondary", interactive=False)
+                track_button = gr.Button("Track", interactive=False)
 
-            with gr.Row():
-                current_frame = gr.Image(
-                    label="Click to add query points",
-                    type="numpy",
-                    interactive=False,
-                    elem_classes="frame-preview"
-                )
-
-            with gr.Row():
-                track_button = gr.Button("Track", variant="primary", size="lg", interactive=False)
-
-        # Right column - Output
         with gr.Column():
             output_video = gr.Video(
                 label="Output Video",
                 interactive=False,
                 autoplay=True,
                 loop=True,
-                elem_classes="output-video"
             )
 
-    # Initialize visualization
-    rr.init("CoTracker Visualization Lizards v7")
+    rr.init("CoTracker Visualization Lizards")
     rr.spawn()
 
-    # Event handlers
     submit.click(
-        fn=preprocess_video_input,
-        inputs=[video_in],
-        outputs=[
-            video, video_preview, video_queried_preview, video_input,
-            video_fps, video_in_drawer, current_frame, query_frames,
-            query_points, query_points_color, is_tracked_query,
-            query_count, undo, clear_frame, clear_all, track_button
+        fn = preprocess_video_input, 
+        inputs = [video_in], 
+        outputs = [
+            video,
+            video_preview,
+            video_queried_preview,
+            video_input,
+            video_fps,
+            video_in_drawer,
+            current_frame,
+            query_frames,
+            query_points,
+            query_points_color,
+            is_tracked_query,
+            query_count,
+            undo,
+            clear_frame,
+            clear_all,
+            track_button,
         ],
-        queue=False
+        queue = False
     )
 
     query_frames.change(
-        fn=choose_frame,
-        inputs=[query_frames, video_queried_preview],
-        outputs=[current_frame],
-        queue=False
+        fn = choose_frame,
+        inputs = [query_frames, video_queried_preview],
+        outputs = [
+            current_frame,
+        ],
+        queue = False
     )
 
     current_frame.select(
-        fn=get_point,
-        inputs=[
-            query_frames, video_queried_preview, query_points,
-            query_points_color, query_count
-        ],
-        outputs=[
-            current_frame, video_queried_preview, query_points,
-            query_points_color, query_count
-        ],
-        queue=False
+        fn = get_point, 
+        inputs = [
+            query_frames,
+            video_queried_preview,
+            query_points,
+            query_points_color,
+            query_count,
+        ], 
+        outputs = [
+            current_frame,
+            video_queried_preview,
+            query_points,
+            query_points_color,
+            query_count
+        ], 
+        queue = False
     )
-
+    
     undo.click(
-        fn=undo_point,
-        inputs=[
-            query_frames, video_preview, video_queried_preview,
-            query_points, query_points_color, query_count
+        fn = undo_point,
+        inputs = [
+            query_frames,
+            video_preview,
+            video_queried_preview,
+            query_points,
+            query_points_color,
+            query_count
         ],
-        outputs=[
-            current_frame, video_queried_preview, query_points,
-            query_points_color, query_count
+        outputs = [
+            current_frame,
+            video_queried_preview,
+            query_points,
+            query_points_color,
+            query_count
         ],
-        queue=False
+        queue = False
     )
 
     clear_frame.click(
-        fn=clear_frame_fn,
-        inputs=[
-            query_frames, video_preview, video_queried_preview,
-            query_points, query_points_color, query_count
+        fn = clear_frame_fn,
+        inputs = [
+            query_frames,
+            video_preview,
+            video_queried_preview,
+            query_points,
+            query_points_color,
+            query_count
         ],
-        outputs=[
-            current_frame, video_queried_preview, query_points,
-            query_points_color, query_count
+        outputs = [
+            current_frame,
+            video_queried_preview,
+            query_points,
+            query_points_color,
+            query_count
         ],
-        queue=False
+        queue = False
     )
 
     clear_all.click(
-        fn=clear_all_fn,
-        inputs=[query_frames, video_preview],
-        outputs=[
-            current_frame, video_queried_preview, query_points,
-            query_points_color, query_count
+        fn = clear_all_fn,
+        inputs = [
+            query_frames,
+            video_preview,
         ],
-        queue=False
+        outputs = [
+            current_frame,
+            video_queried_preview,
+            query_points,
+            query_points_color,
+            query_count
+        ],
+        queue = False
     )
 
+    
     track_button.click(
-        fn=track,
-        inputs=[
-            video_preview, video_input, video_fps,
-            query_points, query_points_color, query_count
+        fn = track,
+        inputs = [
+            video_preview,
+            video_input,
+            video_fps,
+            query_points,
+            query_points_color,
+            query_count,
         ],
-        outputs=[output_video],
-        queue=True
+        outputs = [
+            output_video,
+        ],
+        queue = True,
     )
 
+    
 demo.launch(show_api=False, show_error=True, debug=True, share=True)

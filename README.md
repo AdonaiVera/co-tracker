@@ -1,5 +1,9 @@
 # CoTracker3: Simpler and Better Point Tracking by Pseudo-Labelling Real Videos
 
+Welcome to the Rerun fork of Tracking Any Point (TAP).
+
+This fork has been modified to use Rerun for visualization.
+
 **[Meta AI Research, GenAI](https://ai.facebook.com/research/)**; **[University of Oxford, VGG](https://www.robots.ox.ac.uk/~vgg/)**
 
 [Nikita Karaev](https://nikitakaraevv.github.io/), [Iurii Makarov](https://linkedin.com/in/lvoursl), [Jianyuan Wang](https://jytime.github.io/), [Ignacio Rocco](https://www.irocco.info/), [Benjamin Graham](https://ai.facebook.com/people/benjamin-graham/), [Natalia Neverova](https://nneverova.github.io/), [Andrea Vedaldi](https://www.robots.ox.ac.uk/~vedaldi/), [Christian Rupprecht](https://chrirupp.github.io/)
