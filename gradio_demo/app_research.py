@@ -188,9 +188,42 @@ def log_tracks(frame_points_sequence: List[List[dict]], image_size: Tuple[int, i
                 rr.set_time_sequence("frameid", frame_id)
                 rr.log(f"points/point_{NAME_POINTS[i]}", rr.Image(point_track_images[i]))
                 rr.log("points/all_points", rr.Image(all_points_image))
+
+        # Calculate and log angles between points 1,2,3
+        if len(frame_points) > 3 and all(frame_points[i]['visible'] for i in [1,2,3]):
+            p1 = np.array([frame_points[1]['x'], frame_points[1]['y']])
+            p2 = np.array([frame_points[2]['x'], frame_points[2]['y']]) 
+            p3 = np.array([frame_points[3]['x'], frame_points[3]['y']])
+            
+            # Calculate vectors
+            v1 = p1 - p2
+            v2 = p3 - p2
+            
+            # Calculate angle in degrees
+            angle = np.degrees(np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))))
+            
+            # Log angle to Rerun
+            rr.set_time_sequence("frameid", frame_id)
+            rr.log("angles/angle", rr.Scalar(angle))
     
         # Draw connections between consecutive points
         for i in range(len(frame_points)-1):
+            
+            # Create robot visualization with lines
+            robot_image = np.zeros((height, width, 3), dtype=np.uint8)
+               
+            # Draw line from point 0 to 2 if both visible
+            if len(frame_points) > 2 and frame_points[0]['visible'] and frame_points[2]['visible']:
+                pt1 = (int(frame_points[0]['x']), int(frame_points[0]['y']))
+                pt2 = (int(frame_points[2]['x']), int(frame_points[2]['y']))
+                cv2.line(robot_image, pt1, pt2, (255, 255, 255), 10)
+            
+            # Draw line from point 2 to 4 if both visible
+            if len(frame_points) > 4 and frame_points[2]['visible'] and frame_points[4]['visible']:
+                pt1 = (int(frame_points[2]['x']), int(frame_points[2]['y']))
+                pt2 = (int(frame_points[4]['x']), int(frame_points[4]['y']))
+                cv2.line(robot_image, pt1, pt2, (0, 255, 0), 5)
+
             # Only connect consecutive points in sequence
             # Skip if either point is not visible
             if not frame_points[i]['visible'] or not frame_points[i+1]['visible']:
@@ -204,7 +237,8 @@ def log_tracks(frame_points_sequence: List[List[dict]], image_size: Tuple[int, i
             # Log to Rerun
             rr.set_time_sequence("frameid", frame_id)
             rr.log("points/connections", rr.Image(connections_image))
-
+            rr.log("points/robot", rr.Image(robot_image))
+            
 def paint_point_track_visualizate(
     frames: np.ndarray,
     point_tracks: np.ndarray, 
