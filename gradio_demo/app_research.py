@@ -280,6 +280,7 @@ def paint_point_track_visualizate(
         log_video(frames, "original")
 
         frame_points_sequence = []
+        show_past_points = True  
         for t in range(num_frames):
             image = np.pad(
                 video[t],
@@ -332,6 +333,29 @@ def paint_point_track_visualizate(
                         y1:y_ub, x1:x_ub, :
                     ] + patch * np.array(colormap[i])[np.newaxis, np.newaxis, :]
 
+            # Draw past points if the flag is set
+            if show_past_points:
+                for i in range(num_points):
+                    for past_t in range(t):  # Show past points up to the current frame
+                        if visibles[i, past_t]:
+                            past_x, past_y = point_tracks[i, past_t, :] + 0.5
+                            past_x = min(max(past_x, 0.0), width)
+                            past_y = min(max(past_y, 0.0), height)
+                            # Use the same patch idea instead of cv2.circle
+                            past_x1, past_y1 = np.floor(past_x).astype(np.int32), np.floor(past_y).astype(np.int32)
+                            past_x2, past_y2 = past_x1 + 1, past_y1 + 1
+                            past_patch = (
+                                icon1 * (past_x2 - past_x) * (past_y2 - past_y)
+                                + icon2 * (past_x2 - past_x) * (past_y - past_y1)
+                                + icon3 * (past_x - past_x1) * (past_y2 - past_y)
+                                + icon4 * (past_x - past_x1) * (past_y - past_y1)
+                            )
+                            past_x_ub = past_x1 + 2 * radius + 2
+                            past_y_ub = past_y1 + 2 * radius + 2
+                            image[past_y1:past_y_ub, past_x1:past_x_ub, :] = (1 - past_patch) * image[
+                                past_y1:past_y_ub, past_x1:past_x_ub, :
+                            ] + past_patch * np.array(colormap[i])[np.newaxis, np.newaxis, :]
+
             # Store frame points for later logging
             frame_points_sequence.append(frame_points)
                 
@@ -342,9 +366,10 @@ def paint_point_track_visualizate(
         # Log progressive trajectories with visible points only
         log_tracks(frame_points_sequence, (height, width))
 
-            
-
         log_video(video, "tracking")
+    except Exception as e:
+        print("Error in the tracker visualization")
+        print(e)
             
     except Exception as e:
         print("Error in the tracker visualization")
