@@ -175,7 +175,7 @@ def paint_point_track(
 PREVIEW_WIDTH = 768 # Width of the preview video
 VIDEO_INPUT_RESO = (384, 512) # Resolution of the input video
 POINT_SIZE = 4 # Size of the query point in the preview video
-FRAME_LIMIT = 300 # Limit the number of frames to process
+FRAME_LIMIT = 30000 # Limit the number of frames to process
 
 
 def get_point(frame_num, video_queried_preview, query_points, query_points_color, query_count, evt: gr.SelectData):
