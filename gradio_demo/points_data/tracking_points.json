@@ -1,0 +1,454 @@
+{
+  "metadata": {
+    "fps": 24.86,
+    "point_names": {
+      "0": "head_mid_top",
+      "1": "torso_mid_back",
+      "2": "tail_top_back",
+      "3": "tail_mid_back",
+      "4": "tail_bottom_back"
+    }
+  },
+  "frames": [
+    {
+      "frame_number": 0,
+      "points": [
+        {
+          "name": "head_mid_top",
+          "x": 129.0,
+          "y": 114.0,
+          "color": [
+            255,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "torso_mid_back",
+          "x": 193.0,
+          "y": 95.0,
+          "color": [
+            0,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_top_back",
+          "x": 250.0,
+          "y": 81.0,
+          "color": [
+            0,
+            0,
+            255
+          ]
+        },
+        {
+          "name": "tail_mid_back",
+          "x": 283.0,
+          "y": 90.0,
+          "color": [
+            255,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_bottom_back",
+          "x": 328.0,
+          "y": 104.0,
+          "color": [
+            0,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "frame_number": 19,
+      "points": [
+        {
+          "name": "head_mid_top",
+          "x": 128.0,
+          "y": 124.0,
+          "color": [
+            255,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "torso_mid_back",
+          "x": 191.0,
+          "y": 117.0,
+          "color": [
+            0,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_top_back",
+          "x": 247.0,
+          "y": 104.0,
+          "color": [
+            0,
+            0,
+            255
+          ]
+        },
+        {
+          "name": "tail_mid_back",
+          "x": 285.0,
+          "y": 114.0,
+          "color": [
+            255,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_bottom_back",
+          "x": 321.0,
+          "y": 120.0,
+          "color": [
+            0,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "frame_number": 25,
+      "points": [
+        {
+          "name": "head_mid_top",
+          "x": 129.0,
+          "y": 141.0,
+          "color": [
+            255,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "torso_mid_back",
+          "x": 196.0,
+          "y": 136.0,
+          "color": [
+            0,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_top_back",
+          "x": 248.0,
+          "y": 131.0,
+          "color": [
+            0,
+            0,
+            255
+          ]
+        },
+        {
+          "name": "tail_mid_back",
+          "x": 291.0,
+          "y": 138.0,
+          "color": [
+            255,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_bottom_back",
+          "x": 328.0,
+          "y": 131.0,
+          "color": [
+            0,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "frame_number": 35,
+      "points": [
+        {
+          "name": "head_mid_top",
+          "x": 128.0,
+          "y": 210.0,
+          "color": [
+            255,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "torso_mid_back",
+          "x": 196.0,
+          "y": 184.0,
+          "color": [
+            0,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_top_back",
+          "x": 234.0,
+          "y": 195.0,
+          "color": [
+            0,
+            0,
+            255
+          ]
+        },
+        {
+          "name": "tail_mid_back",
+          "x": 266.0,
+          "y": 230.0,
+          "color": [
+            255,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_bottom_back",
+          "x": 302.0,
+          "y": 256.0,
+          "color": [
+            0,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "frame_number": 39,
+      "points": [
+        {
+          "name": "head_mid_top",
+          "x": 141.0,
+          "y": 232.0,
+          "color": [
+            255,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "torso_mid_back",
+          "x": 201.0,
+          "y": 216.0,
+          "color": [
+            0,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_top_back",
+          "x": 243.0,
+          "y": 230.0,
+          "color": [
+            0,
+            0,
+            255
+          ]
+        },
+        {
+          "name": "tail_mid_back",
+          "x": 261.0,
+          "y": 277.0,
+          "color": [
+            255,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_bottom_back",
+          "x": 248.0,
+          "y": 317.0,
+          "color": [
+            0,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "frame_number": 45,
+      "points": [
+        {
+          "name": "head_mid_top",
+          "x": 136.0,
+          "y": 277.0,
+          "color": [
+            255,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "torso_mid_back",
+          "x": 189.0,
+          "y": 282.0,
+          "color": [
+            0,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_top_back",
+          "x": 236.0,
+          "y": 296.0,
+          "color": [
+            0,
+            0,
+            255
+          ]
+        },
+        {
+          "name": "tail_mid_back",
+          "x": 262.0,
+          "y": 301.0,
+          "color": [
+            255,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_bottom_back",
+          "x": 288.0,
+          "y": 309.0,
+          "color": [
+            0,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "frame_number": 51,
+      "points": [
+        {
+          "name": "head_mid_top",
+          "x": 151.0,
+          "y": 335.0,
+          "color": [
+            255,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "torso_mid_back",
+          "x": 207.0,
+          "y": 375.0,
+          "color": [
+            0,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_top_back",
+          "x": 255.0,
+          "y": 362.0,
+          "color": [
+            0,
+            0,
+            255
+          ]
+        },
+        {
+          "name": "tail_mid_back",
+          "x": 270.0,
+          "y": 332.0,
+          "color": [
+            255,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_bottom_back",
+          "x": 269.0,
+          "y": 289.0,
+          "color": [
+            0,
+            255,
+            255
+          ]
+        }
+      ]
+    },
+    {
+      "frame_number": 55,
+      "points": [
+        {
+          "name": "head_mid_top",
+          "x": 155.0,
+          "y": 387.0,
+          "color": [
+            255,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "torso_mid_back",
+          "x": 218.0,
+          "y": 433.0,
+          "color": [
+            0,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_top_back",
+          "x": 261.0,
+          "y": 410.0,
+          "color": [
+            0,
+            0,
+            255
+          ]
+        },
+        {
+          "name": "tail_mid_back",
+          "x": 273.0,
+          "y": 365.0,
+          "color": [
+            255,
+            255,
+            0
+          ]
+        },
+        {
+          "name": "tail_bottom_back",
+          "x": 280.0,
+          "y": 341.0,
+          "color": [
+            0,
+            255,
+            255
+          ]
+        }
+      ]
+    }
+  ]
+}

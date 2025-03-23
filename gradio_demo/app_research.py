@@ -5,6 +5,7 @@
 import os
 import sys
 import uuid
+import json
 
 import gradio as gr
 import mediapy
@@ -558,6 +559,44 @@ def track(
     query_points_color, 
     query_count, 
 ):
+    # Save tracking points data
+    points_data = {
+        "metadata": {
+            "fps": video_fps,
+            "point_names": NAME_POINTS
+        },
+        "frames": []
+    }
+    
+    # Convert query points to structured data
+    for frame_idx, frame_points in enumerate(query_points):
+        if frame_points:  # If frame has points
+            frame_data = {
+                "frame_number": frame_idx,
+                "points": []
+            }
+            for point_idx, (x, y, _) in enumerate(frame_points):
+                point_data = {
+                    "name": NAME_POINTS[point_idx],
+                    "x": float(x),
+                    "y": float(y),
+                    "color": query_points_color[frame_idx][point_idx]
+                }
+                frame_data["points"].append(point_data)
+            points_data["frames"].append(frame_data)
+    
+    # Save to JSON file
+    output_dir = os.path.join(os.path.dirname(__file__), "points_data")
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, "tracking_points.json")
+    
+    with open(output_file, "w") as f:
+        json.dump(points_data, f, indent=2)
+    
+    print(f"Saved tracking points data to: {output_file}")
+    print("\nExample of saved data structure:")
+    print(json.dumps(points_data, indent=2))
+
     tracking_mode = 'selected'
     if query_count == 0: 
         tracking_mode='grid'
